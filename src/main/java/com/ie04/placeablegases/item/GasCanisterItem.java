@@ -1,9 +1,12 @@
 package com.ie04.placeablegases.item;
 
 import com.ie04.placeablegases.gas.GasStack;
+import com.ie04.placeablegases.simulation.GasCloudSimulator;
 import com.ie04.placeablegases.util.GasNbt;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
@@ -103,13 +106,20 @@ public class GasCanisterItem extends Item
         {
             GasStack storedGas = gasStack.get();
             int releasedAmount = Math.min(DEBUG_RELEASE_AMOUNT, storedGas.getAmount());
+            GasStack releasedGas = new GasStack(storedGas.getGas(), releasedAmount, storedGas.getPressure(), storedGas.getTemperature(), storedGas.getPurity());
+            BlockPos releasePos = getReleasePos(level, player);
 
-            // Temporary debug release action. Gas clouds will be created by a later simulation milestone.
+            if (!(level instanceof ServerLevel serverLevel) || !GasCloudSimulator.release(serverLevel, releasePos, releasedGas))
+            {
+                player.sendSystemMessage(Component.literal("There is no space to release gas."));
+                return InteractionResultHolder.sidedSuccess(stack, false);
+            }
+
             GasNbt.shrinkAmount(stack, releasedAmount);
             GasNbt.recalculatePressure(stack, this::calculatePressure);
 
             int remainingAmount = GasNbt.getAmount(stack);
-            player.sendSystemMessage(Component.literal("Released " + releasedAmount + " units of " + storedGas.getGas().getId() + " at " + storedGas.getPressure() + " pressure."));
+            player.sendSystemMessage(Component.literal("Released " + releasedAmount + " units of " + storedGas.getGas().getId() + " into a gas cloud at " + releasePos.toShortString() + "."));
             player.sendSystemMessage(Component.literal("Remaining: " + remainingAmount + " units."));
         }
 
@@ -162,5 +172,14 @@ public class GasCanisterItem extends Item
             return incomingValue;
 
         return Math.round((existingValue * existingAmount + incomingValue * incomingAmount) / (float) totalAmount);
+    }
+
+    private static BlockPos getReleasePos(Level level, Player player)
+    {
+        BlockPos forwardPos = player.blockPosition().relative(player.getDirection());
+        if (level.getBlockState(forwardPos).isAir() || level.getBlockEntity(forwardPos) != null)
+            return forwardPos;
+
+        return player.blockPosition().above();
     }
 }

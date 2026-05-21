@@ -1,6 +1,8 @@
 package com.ie04.placeablegases;
 
 import com.ie04.placeablegases.config.Config;
+import com.ie04.placeablegases.registry.ModBlockEntities;
+import com.ie04.placeablegases.registry.ModBlocks;
 import com.ie04.placeablegases.registry.ModCreativeTabs;
 import com.ie04.placeablegases.registry.ModFluids;
 import com.ie04.placeablegases.registry.ModGases;
@@ -37,6 +39,8 @@ public class PlaceableGasesMod
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
+        ModBlocks.register(modEventBus);
+        ModBlockEntities.register(modEventBus);
         ModFluids.register(modEventBus);
         ModItems.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
