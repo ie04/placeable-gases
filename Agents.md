@@ -27,6 +27,14 @@ Project notes for coding agents working on Placeable Gases Mod.
 - `com.ie04.placeablegases.config`: Forge config specs and loaded configuration values.
 - `com.ie04.placeablegases.network`: network messages and synchronization for client-visible gas state.
 
+## Current Foundation
+
+- Gas model skeleton exists: `Gas`, `GasProperties`, `GasBehavior`, `GasStack`, `GasRegistry`, and placeholder behavior contexts.
+- Public gas API exists in `GasApi` as a wrapper around the custom gas registry.
+- Built-in gas definitions are registered through `ModGases` for hydrogen, oxygen, and chlorine.
+- `ModFluids` contains inert placeholder Forge `Fluid` registrations for storage compatibility; replace these with real Forge fluid implementations when tank/storage work begins.
+- Do not implement world gas simulation, pressure mechanics, reactions, rendering, tanks, canisters, or GUIs until the foundational API boundaries are stable.
+
 ## Project Prompt
 
 Build Placeable Gases as a highly modular atmospheric simulation mod for Minecraft. The mod should make realistic gas behavior, pressure systems, and chemical interactions feel like first-class world mechanics rather than a reskinned fluid system.

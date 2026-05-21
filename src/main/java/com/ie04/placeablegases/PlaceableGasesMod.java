@@ -1,6 +1,8 @@
 package com.ie04.placeablegases;
 
 import com.ie04.placeablegases.config.Config;
+import com.ie04.placeablegases.registry.ModFluids;
+import com.ie04.placeablegases.registry.ModGases;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
@@ -68,6 +70,8 @@ public class PlaceableGasesMod
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
+        ModFluids.register(modEventBus);
+
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
         // Register the Deferred Register to the mod event bus so items get registered
@@ -96,6 +100,8 @@ public class PlaceableGasesMod
         LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
 
         Config.items.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
+
+        event.enqueueWork(ModGases::register);
     }
 
     // Add the starter block item to the building blocks tab
