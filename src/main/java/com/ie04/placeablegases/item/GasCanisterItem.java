@@ -20,6 +20,7 @@ public class GasCanisterItem extends Item
 {
     private static final int DEBUG_RELEASE_AMOUNT = 100;
     private static final int REFERENCE_TEMPERATURE = 295;
+    private static final int STANDARD_PRESSURE = 100;
 
     private final int volumeCapacity;
     private final int maxPressure;
@@ -80,8 +81,8 @@ public class GasCanisterItem extends Item
             return 0;
 
         float temperatureFactor = Math.max(1, temperature) / (float) REFERENCE_TEMPERATURE;
-        float gasPressureFactor = Math.max(0.01f, gasStack.getGas().getProperties().density());
-        return (int) Math.ceil(amount * gasPressureFactor * temperatureFactor * 1000.0f / volumeCapacity);
+        float pressureMultiplier = gasStack.getGas().getProperties().pressureMultiplier();
+        return (int) Math.ceil(amount * pressureMultiplier * temperatureFactor * STANDARD_PRESSURE / volumeCapacity);
     }
 
     @Override

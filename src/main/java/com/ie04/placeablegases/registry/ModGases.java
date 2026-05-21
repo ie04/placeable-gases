@@ -11,6 +11,8 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class ModGases
 {
+    private static final float DEFAULT_PRESSURE_MULTIPLIER = 1.0f;
+
     public static Gas HYDROGEN;
     public static Gas OXYGEN;
     public static Gas CHLORINE;
@@ -27,15 +29,15 @@ public final class ModGases
             return;
 
         HYDROGEN = GasApi.registerGas(id("hydrogen"), ModFluids.HYDROGEN.get(),
-                new GasProperties(0.07f, 1.00f, 0.00f, 1.00f, 0.90f, 0xFFE8F7FF, 250, 1000, false),
+                new GasProperties(0.07f, DEFAULT_PRESSURE_MULTIPLIER, 1.00f, 0.00f, 1.00f, 0.90f, 0xFFE8F7FF, 250, 1000, false),
                 new HydrogenGasBehavior());
 
         OXYGEN = GasApi.registerGas(id("oxygen"), ModFluids.OXYGEN.get(),
-                new GasProperties(1.10f, 0.65f, 0.00f, 0.00f, 0.00f, 0xFFBFD8FF, 300, 1200, false),
+                new GasProperties(1.10f, DEFAULT_PRESSURE_MULTIPLIER, 0.65f, 0.00f, 0.00f, 0.00f, 0xFFBFD8FF, 300, 1200, false),
                 new OxygenGasBehavior());
 
         CHLORINE = GasApi.registerGas(id("chlorine"), ModFluids.CHLORINE.get(),
-                new GasProperties(2.50f, 0.35f, 0.85f, 0.00f, 0.10f, 0xFFB6D85A, 200, 800, true),
+                new GasProperties(2.50f, DEFAULT_PRESSURE_MULTIPLIER, 0.35f, 0.85f, 0.00f, 0.10f, 0xFFB6D85A, 200, 800, true),
                 new ChlorineGasBehavior());
 
         registered = true;
