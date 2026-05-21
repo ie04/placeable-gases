@@ -36,6 +36,7 @@ Project notes for coding agents working on Placeable Gases Mod.
 - Public gas API exists in `GasApi` as a wrapper around the custom gas registry.
 - Built-in gas definitions are registered through `ModGases` for hydrogen, oxygen, and chlorine.
 - Built-in gas properties are defined in the Forge common config under `gases.<gas_name>`. `Gas` uses supplier-backed properties, so config reloads affect density, pressure multiplier, diffusivity, toxicity, flammability, explosiveness, color, pressure limits, and air reaction flags while the game is running.
+- Forge's Mods menu config button is enabled through a `ConfigScreenFactory` registered in `PlaceableGasesMod`; the current screen points users to `config/placeablegases-common.toml`.
 - `ModFluids` contains inert placeholder Forge `Fluid` registrations for storage compatibility; replace these with real Forge fluid implementations when tank/storage work begins.
 - Gas canisters exist as the first pressure-aware storage item. They serialize `GasStack` data to ItemStack NBT through `GasNbt` and currently release gas only as debug chat output.
 - Gas canisters have a fixed volume capacity and max pressure rating. Use `GasCanisterItem.pressurize(...)` for future compressors/fill sources so inserted gas stops at the pressure limit.

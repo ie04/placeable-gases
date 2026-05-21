@@ -1,6 +1,7 @@
 package com.ie04.placeablegases;
 
 import com.ie04.placeablegases.client.render.GasVoxelBlockEntityRenderer;
+import com.ie04.placeablegases.client.screen.PlaceableGasesConfigScreen;
 import com.ie04.placeablegases.config.Config;
 import com.ie04.placeablegases.registry.ModBlockEntities;
 import com.ie04.placeablegases.registry.ModBlocks;
@@ -11,6 +12,7 @@ import com.ie04.placeablegases.registry.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -50,6 +52,7 @@ public class PlaceableGasesMod
 
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        context.registerExtensionPoint(ConfigScreenFactory.class, () -> new ConfigScreenFactory(PlaceableGasesConfigScreen::new));
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
