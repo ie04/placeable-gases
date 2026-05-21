@@ -19,10 +19,69 @@ import java.util.Optional;
 public class GasCanisterItem extends Item
 {
     private static final int DEBUG_RELEASE_AMOUNT = 100;
+    private static final int REFERENCE_TEMPERATURE = 295;
 
-    public GasCanisterItem(Properties properties)
+    private final int volumeCapacity;
+    private final int maxPressure;
+
+    public GasCanisterItem(Properties properties, int volumeCapacity, int maxPressure)
     {
         super(properties);
+        if (volumeCapacity <= 0)
+            throw new IllegalArgumentException("Canister volume capacity must be positive.");
+        if (maxPressure <= 0)
+            throw new IllegalArgumentException("Canister max pressure must be positive.");
+
+        this.volumeCapacity = volumeCapacity;
+        this.maxPressure = maxPressure;
+    }
+
+    public int getVolumeCapacity()
+    {
+        return volumeCapacity;
+    }
+
+    public int getMaxPressure()
+    {
+        return maxPressure;
+    }
+
+    /**
+     * Inserts as much of the incoming gas as this canister can safely hold.
+     * This is the foundational pressurization hook for future compressors.
+     */
+    public int pressurize(ItemStack canisterStack, GasStack incomingGas)
+    {
+        if (incomingGas.getAmount() <= 0)
+            return 0;
+
+        Optional<GasStack> currentGas = GasNbt.getGasStack(canisterStack);
+        if (currentGas.isPresent() && currentGas.get().getGas() != incomingGas.getGas())
+            return 0;
+
+        GasStack existingGas = currentGas.orElse(null);
+        int existingAmount = existingGas == null ? 0 : existingGas.getAmount();
+        int acceptedAmount = getAcceptedAmount(existingAmount, incomingGas);
+        if (acceptedAmount <= 0)
+            return 0;
+
+        int combinedAmount = existingAmount + acceptedAmount;
+        int combinedTemperature = combineWeighted(existingGas == null ? 0 : existingGas.getTemperature(), existingAmount, incomingGas.getTemperature(), acceptedAmount);
+        int combinedPurity = combineWeighted(existingGas == null ? 0 : existingGas.getPurity(), existingAmount, incomingGas.getPurity(), acceptedAmount);
+        int combinedPressure = calculatePressure(incomingGas, combinedAmount, combinedTemperature);
+
+        GasNbt.setGasStack(canisterStack, new GasStack(incomingGas.getGas(), combinedAmount, combinedPressure, combinedTemperature, combinedPurity));
+        return acceptedAmount;
+    }
+
+    public int calculatePressure(GasStack gasStack, int amount, int temperature)
+    {
+        if (amount <= 0)
+            return 0;
+
+        float temperatureFactor = Math.max(1, temperature) / (float) REFERENCE_TEMPERATURE;
+        float gasPressureFactor = Math.max(0.01f, gasStack.getGas().getProperties().density());
+        return (int) Math.ceil(amount * gasPressureFactor * temperatureFactor * 1000.0f / volumeCapacity);
     }
 
     @Override
@@ -46,6 +105,7 @@ public class GasCanisterItem extends Item
 
             // Temporary debug release action. Gas clouds will be created by a later simulation milestone.
             GasNbt.shrinkAmount(stack, releasedAmount);
+            GasNbt.recalculatePressure(stack, this::calculatePressure);
 
             int remainingAmount = GasNbt.getAmount(stack);
             player.sendSystemMessage(Component.literal("Released " + releasedAmount + " units of " + storedGas.getGas().getId() + " at " + storedGas.getPressure() + " pressure."));
@@ -62,14 +122,44 @@ public class GasCanisterItem extends Item
         if (gasStack.isEmpty())
         {
             tooltip.add(Component.literal("Empty").withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.literal("Volume: " + volumeCapacity + " units").withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.literal("Max Pressure: " + maxPressure).withStyle(ChatFormatting.GRAY));
             return;
         }
 
         GasStack storedGas = gasStack.get();
         tooltip.add(Component.literal("Gas: " + storedGas.getGas().getId()).withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.literal("Amount: " + storedGas.getAmount()).withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("Pressure: " + storedGas.getPressure()).withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.literal("Pressure: " + storedGas.getPressure() + " / " + maxPressure).withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.literal("Volume: " + volumeCapacity + " units").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.literal("Temperature: " + storedGas.getTemperature() + " K").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.literal("Purity: " + storedGas.getPurity() + "%").withStyle(ChatFormatting.GRAY));
+    }
+
+    private int getAcceptedAmount(int existingAmount, GasStack incomingGas)
+    {
+        int low = 0;
+        int high = incomingGas.getAmount();
+
+        while (low < high)
+        {
+            int candidate = (low + high + 1) / 2;
+            int pressure = calculatePressure(incomingGas, existingAmount + candidate, incomingGas.getTemperature());
+            if (pressure <= maxPressure)
+                low = candidate;
+            else
+                high = candidate - 1;
+        }
+
+        return low;
+    }
+
+    private static int combineWeighted(int existingValue, int existingAmount, int incomingValue, int incomingAmount)
+    {
+        int totalAmount = existingAmount + incomingAmount;
+        if (totalAmount <= 0)
+            return incomingValue;
+
+        return Math.round((existingValue * existingAmount + incomingValue * incomingAmount) / (float) totalAmount);
     }
 }

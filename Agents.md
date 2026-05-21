@@ -37,6 +37,7 @@ Project notes for coding agents working on Placeable Gases Mod.
 - Built-in gas definitions are registered through `ModGases` for hydrogen, oxygen, and chlorine.
 - `ModFluids` contains inert placeholder Forge `Fluid` registrations for storage compatibility; replace these with real Forge fluid implementations when tank/storage work begins.
 - Gas canisters exist as the first pressure-aware storage item. They serialize `GasStack` data to ItemStack NBT through `GasNbt` and currently release gas only as debug chat output.
+- Gas canisters have a fixed volume capacity and max pressure rating. Use `GasCanisterItem.pressurize(...)` for future compressors/fill sources so inserted gas stops at the pressure limit.
 - Do not implement world gas simulation, real pressure mechanics, reactions, rendering, tanks, machines, networking, or GUIs until the foundational API boundaries are stable.
 
 ## Project Prompt

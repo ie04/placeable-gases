@@ -3,7 +3,7 @@ package com.ie04.placeablegases.registry;
 import com.ie04.placeablegases.PlaceableGasesMod;
 import com.ie04.placeablegases.gas.Gas;
 import com.ie04.placeablegases.gas.GasStack;
-import com.ie04.placeablegases.util.GasNbt;
+import com.ie04.placeablegases.item.GasCanisterItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -35,11 +35,11 @@ public final class ModCreativeTabs
         CREATIVE_MODE_TABS.register(eventBus);
     }
 
-    private static ItemStack prefilledCanister(Gas gas, int amount, int pressure, int temperature, int purity)
+    private static ItemStack prefilledCanister(Gas gas, int amount, int startingPressure, int temperature, int purity)
     {
         ItemStack stack = new ItemStack(ModItems.GAS_CANISTER.get());
-        if (gas != null)
-            GasNbt.setGasStack(stack, new GasStack(gas, amount, pressure, temperature, purity));
+        if (gas != null && stack.getItem() instanceof GasCanisterItem gasCanister)
+            gasCanister.pressurize(stack, new GasStack(gas, amount, startingPressure, temperature, purity));
         return stack;
     }
 }

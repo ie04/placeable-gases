@@ -109,6 +109,21 @@ public final class GasNbt
         getGasStack(stack).ifPresent(gasStack -> setAmount(stack, gasStack.getAmount() - shrinkBy));
     }
 
+    public static void recalculatePressure(ItemStack stack, PressureCalculator calculator)
+    {
+        getGasStack(stack).ifPresent(gasStack -> {
+            int pressure = Math.max(0, calculator.calculate(gasStack, gasStack.getAmount(), gasStack.getTemperature()));
+            gasStack.setPressure(pressure);
+            setGasStack(stack, gasStack);
+        });
+    }
+
+    @FunctionalInterface
+    public interface PressureCalculator
+    {
+        int calculate(GasStack gasStack, int amount, int temperature);
+    }
+
     private static int clampPurity(int purity)
     {
         return Math.max(0, Math.min(100, purity));
