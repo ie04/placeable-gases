@@ -8,6 +8,7 @@ Project notes for coding agents working on Placeable Gases Mod.
 - Base Java package: `com.ie04.placeablegases`.
 - Main mod class: `PlaceableGasesMod`.
 - Git repository: local repo initialized on branch `main` for public GitHub publishing.
+- Mod icon: `src/main/resources/placeable_gases_mod_icon.png`, referenced by `logoFile` in `META-INF/mods.toml`.
 - Keep generated/runtime directories such as `.gradle`, `build`, `run`, and `run-data` out of source renames unless explicitly needed.
 - Prefer existing Forge MDK/Gradle conventions and keep changes scoped.
 
