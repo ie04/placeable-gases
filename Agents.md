@@ -9,6 +9,7 @@ Project notes for coding agents working on Placeable Gases Mod.
 - Main mod class: `PlaceableGasesMod`.
 - Git repository: local repo initialized on branch `main` for public GitHub publishing.
 - Mod icon: `src/main/resources/placeable_gases_mod_icon.png`, referenced by `logoFile` in `META-INF/mods.toml`.
+- Gas canister item icon: `src/main/resources/assets/placeablegases/textures/item/gas_canister.png`, referenced by `assets/placeablegases/models/item/gas_canister.json`.
 - Keep generated/runtime directories such as `.gradle`, `build`, `run`, and `run-data` out of source renames unless explicitly needed.
 - Prefer existing Forge MDK/Gradle conventions and keep changes scoped.
 
