@@ -26,6 +26,7 @@ Project notes for coding agents working on Placeable Gases Mod.
 - `com.ie04.placeablegases.pressure`: atmospheric pressure, compression, depressurization, and vacuum mechanics.
 - `com.ie04.placeablegases.config`: Forge config specs and loaded configuration values.
 - `com.ie04.placeablegases.network`: network messages and synchronization for client-visible gas state.
+- `com.ie04.placeablegases.util`: shared utility helpers such as gas NBT serialization.
 
 ## Current Foundation
 
@@ -33,7 +34,8 @@ Project notes for coding agents working on Placeable Gases Mod.
 - Public gas API exists in `GasApi` as a wrapper around the custom gas registry.
 - Built-in gas definitions are registered through `ModGases` for hydrogen, oxygen, and chlorine.
 - `ModFluids` contains inert placeholder Forge `Fluid` registrations for storage compatibility; replace these with real Forge fluid implementations when tank/storage work begins.
-- Do not implement world gas simulation, pressure mechanics, reactions, rendering, tanks, canisters, or GUIs until the foundational API boundaries are stable.
+- Gas canisters exist as the first pressure-aware storage item. They serialize `GasStack` data to ItemStack NBT through `GasNbt` and currently release gas only as debug chat output.
+- Do not implement world gas simulation, real pressure mechanics, reactions, rendering, tanks, machines, networking, or GUIs until the foundational API boundaries are stable.
 
 ## Project Prompt
 
