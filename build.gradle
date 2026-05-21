@@ -113,6 +113,10 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
     maven {
+        name = 'ForgeGradleUserRepo'
+        url = uri("${gradle.gradleUserHomeDir}/caches/forge_gradle/minecraft_user_repo")
+    }
+    maven {
         name = 'MinecraftForge'
         url = 'https://maven.minecraftforge.net/'
     }
