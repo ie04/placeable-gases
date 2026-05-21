@@ -2,8 +2,8 @@ package com.ie04.placeablegases.registry;
 
 import com.ie04.placeablegases.PlaceableGasesMod;
 import com.ie04.placeablegases.api.GasApi;
+import com.ie04.placeablegases.config.Config;
 import com.ie04.placeablegases.gas.Gas;
-import com.ie04.placeablegases.gas.GasProperties;
 import com.ie04.placeablegases.gas.behavior.ChlorineGasBehavior;
 import com.ie04.placeablegases.gas.behavior.HydrogenGasBehavior;
 import com.ie04.placeablegases.gas.behavior.OxygenGasBehavior;
@@ -11,10 +11,6 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class ModGases
 {
-    private static final float DEFAULT_PRESSURE_MULTIPLIER = 1.0f;
-    private static final float AIR_RELATIVE_DENSITY = 1.0f;
-    private static final float HYDROGEN_DENSITY = 0.07f; // Less dense than air, so gas voxels bias upward.
-
     public static Gas HYDROGEN;
     public static Gas OXYGEN;
     public static Gas CHLORINE;
@@ -31,15 +27,15 @@ public final class ModGases
             return;
 
         HYDROGEN = GasApi.registerGas(id("hydrogen"), ModFluids.HYDROGEN.get(),
-                new GasProperties(HYDROGEN_DENSITY, DEFAULT_PRESSURE_MULTIPLIER, 1.00f, 0.00f, 1.00f, 0.90f, 0xFFE8F7FF, 250, 1000, false),
+                Config.HYDROGEN::getProperties,
                 new HydrogenGasBehavior());
 
         OXYGEN = GasApi.registerGas(id("oxygen"), ModFluids.OXYGEN.get(),
-                new GasProperties(AIR_RELATIVE_DENSITY, DEFAULT_PRESSURE_MULTIPLIER, 0.65f, 0.00f, 0.00f, 0.00f, 0xFFBFD8FF, 300, 1200, false),
+                Config.OXYGEN::getProperties,
                 new OxygenGasBehavior());
 
         CHLORINE = GasApi.registerGas(id("chlorine"), ModFluids.CHLORINE.get(),
-                new GasProperties(2.50f, DEFAULT_PRESSURE_MULTIPLIER, 0.35f, 0.85f, 0.00f, 0.10f, 0xFFB6D85A, 200, 800, true),
+                Config.CHLORINE::getProperties,
                 new ChlorineGasBehavior());
 
         registered = true;

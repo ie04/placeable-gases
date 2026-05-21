@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.material.Fluid;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class GasApi
 {
@@ -18,6 +19,11 @@ public final class GasApi
     public static Gas registerGas(ResourceLocation id, Fluid fluid, GasProperties properties, GasBehavior behavior)
     {
         return GasRegistry.register(new Gas(id, fluid, properties, behavior));
+    }
+
+    public static Gas registerGas(ResourceLocation id, Fluid fluid, Supplier<GasProperties> propertiesSupplier, GasBehavior behavior)
+    {
+        return GasRegistry.register(new Gas(id, fluid, propertiesSupplier, behavior));
     }
 
     public static Optional<Gas> getGas(ResourceLocation id)
