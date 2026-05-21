@@ -7,6 +7,7 @@ import com.ie04.placeablegases.pressure.AmbientPressure;
 import com.ie04.placeablegases.registry.ModBlockEntities;
 import com.ie04.placeablegases.simulation.GasCloudSimulator;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -49,7 +50,7 @@ public class GasVoxelBlockEntity extends BlockEntity
     public void setAirUnits(int airUnits)
     {
         this.airUnits = Math.max(0, airUnits);
-        setChanged();
+        markChangedAndSync();
     }
 
     public int getSpreadPasses()
@@ -60,7 +61,7 @@ public class GasVoxelBlockEntity extends BlockEntity
     public void setSpreadPasses(int spreadPasses)
     {
         this.spreadPasses = Math.max(0, spreadPasses);
-        setChanged();
+        markChangedAndSync();
     }
 
     public int getTotalGasUnits()
@@ -85,7 +86,7 @@ public class GasVoxelBlockEntity extends BlockEntity
 
         gases.merge(gas, amount, Integer::sum);
         spreadPasses = Math.max(spreadPasses, Math.max(0, passes));
-        setChanged();
+        markChangedAndSync();
     }
 
     public void removeGas(Gas gas, int amount)
@@ -95,7 +96,7 @@ public class GasVoxelBlockEntity extends BlockEntity
             gases.put(gas, remaining);
         else
             gases.remove(gas);
-        setChanged();
+        markChangedAndSync();
     }
 
     public float getWeightedDensity()
@@ -109,6 +110,51 @@ public class GasVoxelBlockEntity extends BlockEntity
             weightedDensity += entry.getKey().getProperties().density() * entry.getValue();
 
         return weightedDensity / totalGas;
+    }
+
+    public float getGasOccupancy()
+    {
+        int totalGas = getTotalGasUnits();
+        if (totalGas <= 0)
+            return 0.0f;
+
+        return Math.min(1.0f, totalGas / (float) Math.max(1, totalGas + airUnits));
+    }
+
+    public int getWeightedColor()
+    {
+        int totalGas = getTotalGasUnits();
+        if (totalGas <= 0)
+            return 0xFFFFFFFF;
+
+        int red = 0;
+        int green = 0;
+        int blue = 0;
+        for (Map.Entry<Gas, Integer> entry : gases.entrySet())
+        {
+            int color = entry.getKey().getProperties().color();
+            int amount = entry.getValue();
+            red += ((color >> 16) & 0xFF) * amount;
+            green += ((color >> 8) & 0xFF) * amount;
+            blue += (color & 0xFF) * amount;
+        }
+
+        return 0xFF000000
+                | ((red / totalGas) << 16)
+                | ((green / totalGas) << 8)
+                | (blue / totalGas);
+    }
+
+    @Override
+    public ClientboundBlockEntityDataPacket getUpdatePacket()
+    {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public CompoundTag getUpdateTag()
+    {
+        return saveWithoutMetadata();
     }
 
     @Override
@@ -151,5 +197,12 @@ public class GasVoxelBlockEntity extends BlockEntity
                     gases.put(gas, amount);
             });
         }
+    }
+
+    private void markChangedAndSync()
+    {
+        setChanged();
+        if (level != null && !level.isClientSide)
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
 }

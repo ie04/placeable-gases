@@ -12,6 +12,8 @@ import net.minecraft.resources.ResourceLocation;
 public final class ModGases
 {
     private static final float DEFAULT_PRESSURE_MULTIPLIER = 1.0f;
+    private static final float AIR_RELATIVE_DENSITY = 1.0f;
+    private static final float HYDROGEN_DENSITY = 0.07f; // Less dense than air, so gas voxels bias upward.
 
     public static Gas HYDROGEN;
     public static Gas OXYGEN;
@@ -29,11 +31,11 @@ public final class ModGases
             return;
 
         HYDROGEN = GasApi.registerGas(id("hydrogen"), ModFluids.HYDROGEN.get(),
-                new GasProperties(0.07f, DEFAULT_PRESSURE_MULTIPLIER, 1.00f, 0.00f, 1.00f, 0.90f, 0xFFE8F7FF, 250, 1000, false),
+                new GasProperties(HYDROGEN_DENSITY, DEFAULT_PRESSURE_MULTIPLIER, 1.00f, 0.00f, 1.00f, 0.90f, 0xFFE8F7FF, 250, 1000, false),
                 new HydrogenGasBehavior());
 
         OXYGEN = GasApi.registerGas(id("oxygen"), ModFluids.OXYGEN.get(),
-                new GasProperties(1.10f, DEFAULT_PRESSURE_MULTIPLIER, 0.65f, 0.00f, 0.00f, 0.00f, 0xFFBFD8FF, 300, 1200, false),
+                new GasProperties(AIR_RELATIVE_DENSITY, DEFAULT_PRESSURE_MULTIPLIER, 0.65f, 0.00f, 0.00f, 0.00f, 0xFFBFD8FF, 300, 1200, false),
                 new OxygenGasBehavior());
 
         CHLORINE = GasApi.registerGas(id("chlorine"), ModFluids.CHLORINE.get(),

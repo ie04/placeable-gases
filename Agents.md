@@ -40,7 +40,9 @@ Project notes for coding agents working on Placeable Gases Mod.
 - Gas canisters have a fixed volume capacity and max pressure rating. Use `GasCanisterItem.pressurize(...)` for future compressors/fill sources so inserted gas stops at the pressure limit.
 - `GasStack.amount` is treated as mB of standard gas volume. Hydrogen, oxygen, and chlorine use the default `GasProperties.pressureMultiplier` of `1.0`, so they produce identical pressure per mB in a canister. Future exotic/modded gases can use higher multipliers to hit pressure limits at lower mB.
 - First-pass voxel gas simulation exists through `GasVoxelBlock`, `GasVoxelBlockEntity`, and `GasCloudSimulator`. Gas voxels store mixed gas amounts plus ambient air units, spread over a bounded number of passes, merge into existing gas voxels, and bias movement up/down based on weighted density.
-- Gas voxels currently use a simple visible debug block model so spread can be inspected in-game. Replace this with proper gas rendering later.
+- Gas voxels currently use a simple visible debug renderer so spread can be inspected in-game. Replace this with proper gas rendering later.
+- Gas voxels are rendered by `GasVoxelBlockEntityRenderer` as translucent client-side cubes. Alpha scales with gas occupancy, so low-concentration cells are more transparent.
+- Built-in gas densities are relative to air. Hydrogen uses `0.07` and rises; oxygen uses `1.0`; chlorine uses `2.5` and sinks.
 - Gas canisters release 100 mB on normal right-click. Sneak right-clicking a block dumps the full canister contents into the air block adjacent to the clicked face.
 - Do not implement real pressure mechanics, reactions, rendering, tanks, machines, networking, or GUIs until the foundational API boundaries are stable.
 
