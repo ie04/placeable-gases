@@ -5,11 +5,27 @@ Project notes for coding agents working on Placeable Gases Mod.
 - Project: Forge 1.20.1 mod named Placeable Gases Mod.
 - Mod id: `placeablegases`.
 - Author: Iyad Eltifi (`ie04`).
-- Base Java package: `com.placeablegases`.
+- Base Java package: `com.ie04.placeablegases`.
 - Main mod class: `PlaceableGasesMod`.
 - Git repository: local repo initialized on branch `main` for public GitHub publishing.
 - Keep generated/runtime directories such as `.gradle`, `build`, `run`, and `run-data` out of source renames unless explicitly needed.
 - Prefer existing Forge MDK/Gradle conventions and keep changes scoped.
+
+## Java Package Layout
+
+- `com.ie04.placeablegases`: mod entrypoint and top-level orchestration.
+- `com.ie04.placeablegases.api`: public extension points for addon mods and external integrations.
+- `com.ie04.placeablegases.gas`: gas definitions, state, properties, and runtime gas data models.
+- `com.ie04.placeablegases.registry`: deferred registers and central registration helpers.
+- `com.ie04.placeablegases.block`: blocks for gas storage, containment, machinery, and world interaction.
+- `com.ie04.placeablegases.item`: items for gas containers, tools, upgrades, and player interaction.
+- `com.ie04.placeablegases.fluid`: Forge fluid interoperability and gas-fluid conversion support.
+- `com.ie04.placeablegases.world`: world storage, chunk attachments, saved data, and environmental queries.
+- `com.ie04.placeablegases.simulation`: gas cloud simulation, diffusion, movement, and tick scheduling.
+- `com.ie04.placeablegases.reaction`: chemical reaction rules, hazards, combustion, and environmental effects.
+- `com.ie04.placeablegases.pressure`: atmospheric pressure, compression, depressurization, and vacuum mechanics.
+- `com.ie04.placeablegases.config`: Forge config specs and loaded configuration values.
+- `com.ie04.placeablegases.network`: network messages and synchronization for client-visible gas state.
 
 ## Project Prompt
 

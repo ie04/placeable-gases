@@ -1,5 +1,6 @@
-package com.placeablegases;
+package com.ie04.placeablegases;
 
+import com.ie04.placeablegases.config.Config;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;

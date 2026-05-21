@@ -117,7 +117,7 @@ The planned API should allow addon developers to:
 - Minecraft: `1.20.1`
 - Forge: `47.4.20`
 - Mod id: `placeablegases`
-- Main package: `com.placeablegases`
+- Main package: `com.ie04.placeablegases`
 - Main mod class: `PlaceableGasesMod`
 - Author: Iyad Eltifi (`ie04`)
 - Java target: `17`
