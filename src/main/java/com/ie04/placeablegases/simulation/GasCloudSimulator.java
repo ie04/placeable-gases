@@ -40,9 +40,15 @@ public final class GasCloudSimulator
             return;
         }
 
-        if (source.getSpreadPasses() <= 0)
+        if (tryBuoyancyMove(level, pos, source))
             return;
 
+        if (source.getSpreadPasses() > 0)
+            spread(level, pos, source);
+    }
+
+    private static void spread(ServerLevel level, BlockPos pos, GasVoxelBlockEntity source)
+    {
         int transfers = 0;
         for (Direction direction : orderedDirections(source.getWeightedDensity()))
         {
@@ -54,6 +60,32 @@ public final class GasCloudSimulator
         }
 
         source.setSpreadPasses(source.getSpreadPasses() - 1);
+    }
+
+    private static boolean tryBuoyancyMove(ServerLevel level, BlockPos sourcePos, GasVoxelBlockEntity source)
+    {
+        Direction buoyancyDirection = buoyancyDirection(source.getWeightedDensity());
+        if (buoyancyDirection == null)
+            return false;
+
+        BlockPos targetPos = sourcePos.relative(buoyancyDirection);
+        if (!canOccupy(level, targetPos))
+            return false;
+
+        GasVoxelBlockEntity target = getOrCreateTarget(level, targetPos, source.getSpreadPasses());
+        if (target == null)
+            return false;
+
+        List<Map.Entry<Gas, Integer>> gasEntries = new ArrayList<>(source.getGases().entrySet());
+        for (Map.Entry<Gas, Integer> entry : gasEntries)
+        {
+            target.addGas(entry.getKey(), entry.getValue(), source.getSpreadPasses());
+            source.removeGas(entry.getKey(), entry.getValue());
+        }
+        target.setAirUnits(source.getAirUnits());
+
+        level.setBlock(sourcePos, Blocks.AIR.defaultBlockState(), 3);
+        return true;
     }
 
     private static boolean transferToward(ServerLevel level, BlockPos sourcePos, GasVoxelBlockEntity source, Direction direction)
@@ -135,5 +167,14 @@ public final class GasCloudSimulator
         if (direction.getAxis().isHorizontal())
             return 1;
         return 2;
+    }
+
+    private static Direction buoyancyDirection(float density)
+    {
+        if (density < AIR_DENSITY)
+            return Direction.UP;
+        if (density > AIR_DENSITY)
+            return Direction.DOWN;
+        return null;
     }
 }
