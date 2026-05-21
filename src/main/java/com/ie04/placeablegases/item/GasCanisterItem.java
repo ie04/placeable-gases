@@ -8,11 +8,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 
 import javax.annotation.Nullable;
@@ -106,17 +108,13 @@ public class GasCanisterItem extends Item
         {
             GasStack storedGas = gasStack.get();
             int releasedAmount = Math.min(DEBUG_RELEASE_AMOUNT, storedGas.getAmount());
-            GasStack releasedGas = new GasStack(storedGas.getGas(), releasedAmount, storedGas.getPressure(), storedGas.getTemperature(), storedGas.getPurity());
             BlockPos releasePos = getReleasePos(level, player);
 
-            if (!(level instanceof ServerLevel serverLevel) || !GasCloudSimulator.release(serverLevel, releasePos, releasedGas))
+            if (!(level instanceof ServerLevel serverLevel) || !releaseGasAt(serverLevel, releasePos, stack, storedGas, releasedAmount))
             {
                 player.sendSystemMessage(Component.literal("There is no space to release gas."));
                 return InteractionResultHolder.sidedSuccess(stack, false);
             }
-
-            GasNbt.shrinkAmount(stack, releasedAmount);
-            GasNbt.recalculatePressure(stack, this::calculatePressure);
 
             int remainingAmount = GasNbt.getAmount(stack);
             player.sendSystemMessage(Component.literal("Released " + releasedAmount + " units of " + storedGas.getGas().getId() + " into a gas cloud at " + releasePos.toShortString() + "."));
@@ -124,6 +122,41 @@ public class GasCanisterItem extends Item
         }
 
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
+    }
+
+    @Override
+    public InteractionResult useOn(UseOnContext context)
+    {
+        Player player = context.getPlayer();
+        if (player == null || !player.isShiftKeyDown())
+            return super.useOn(context);
+
+        ItemStack stack = context.getItemInHand();
+        Optional<GasStack> gasStack = GasNbt.getGasStack(stack);
+        Level level = context.getLevel();
+
+        if (gasStack.isEmpty())
+        {
+            if (!level.isClientSide)
+                player.sendSystemMessage(Component.literal("The canister is empty."));
+
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+
+        if (!level.isClientSide)
+        {
+            GasStack storedGas = gasStack.get();
+            BlockPos releasePos = context.getClickedPos().relative(context.getClickedFace());
+            if (!(level instanceof ServerLevel serverLevel) || !releaseGasAt(serverLevel, releasePos, stack, storedGas, storedGas.getAmount()))
+            {
+                player.sendSystemMessage(Component.literal("There is no space to dump gas."));
+                return InteractionResult.SUCCESS;
+            }
+
+            player.sendSystemMessage(Component.literal("Dumped " + storedGas.getAmount() + " units of " + storedGas.getGas().getId() + " into a gas cloud at " + releasePos.toShortString() + "."));
+        }
+
+        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override
@@ -181,5 +214,20 @@ public class GasCanisterItem extends Item
             return forwardPos;
 
         return player.blockPosition().above();
+    }
+
+    private boolean releaseGasAt(ServerLevel level, BlockPos releasePos, ItemStack canisterStack, GasStack storedGas, int amount)
+    {
+        int releasedAmount = Math.min(amount, storedGas.getAmount());
+        if (releasedAmount <= 0)
+            return false;
+
+        GasStack releasedGas = new GasStack(storedGas.getGas(), releasedAmount, storedGas.getPressure(), storedGas.getTemperature(), storedGas.getPurity());
+        if (!GasCloudSimulator.release(level, releasePos, releasedGas))
+            return false;
+
+        GasNbt.shrinkAmount(canisterStack, releasedAmount);
+        GasNbt.recalculatePressure(canisterStack, this::calculatePressure);
+        return true;
     }
 }

@@ -18,7 +18,6 @@ public final class ModBlocks
             .mapColor(MapColor.NONE)
             .noCollission()
             .noOcclusion()
-            .air()
             .strength(0.0f)));
 
     private ModBlocks()

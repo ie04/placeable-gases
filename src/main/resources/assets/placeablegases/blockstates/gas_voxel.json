@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "placeablegases:block/gas_voxel"
+    }
+  }
+}
