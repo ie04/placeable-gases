@@ -89,6 +89,11 @@ public class GasVoxelBlockEntity extends BlockEntity
         markChangedAndSync();
     }
 
+    public int getGasUnits(Gas gas)
+    {
+        return gases.getOrDefault(gas, 0);
+    }
+
     public void removeGas(Gas gas, int amount)
     {
         int remaining = gases.getOrDefault(gas, 0) - Math.max(0, amount);

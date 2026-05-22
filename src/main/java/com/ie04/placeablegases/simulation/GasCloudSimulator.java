@@ -12,16 +12,20 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class GasCloudSimulator
 {
     public static final int INITIAL_SPREAD_PASSES = 48;
-    private static final int MAX_TRANSFERS_PER_TICK = 4;
-    private static final int MIN_TRANSFER_UNITS = 8;
-    private static final float AIR_DENSITY = 1.0f;
+
+    /**
+     * If a voxel contains this much gas or less, it no longer actively expands.
+     * Example: 500 mB means gas spreads until each active voxel is roughly <= 500 mB.
+     */
+    private static final int SPREAD_THRESHOLD_UNITS = 500;
 
     private GasCloudSimulator()
     {
@@ -40,84 +44,130 @@ public final class GasCloudSimulator
             return;
         }
 
-        if (tryBuoyancyMove(level, pos, source))
+        if (source.getSpreadPasses() <= 0)
             return;
 
-        if (source.getSpreadPasses() > 0)
-            spread(level, pos, source);
+        if (source.getTotalGasUnits() <= SPREAD_THRESHOLD_UNITS)
+            return;
+
+        spreadEqualized(level, pos, source);
     }
 
-    private static void spread(ServerLevel level, BlockPos pos, GasVoxelBlockEntity source)
+    /**
+     * Equalizes gas between:
+     * - the source voxel
+     * - all adjacent air blocks
+     * - all adjacent gas voxel blocks
+     *
+     * Existing gas in adjacent gas voxels is included in the total before redistribution.
+     */
+    private static void spreadEqualized(ServerLevel level, BlockPos sourcePos, GasVoxelBlockEntity source)
     {
-        int transfers = 0;
-        for (Direction direction : orderedDirections(source.getWeightedDensity()))
-        {
-            if (transfers >= MAX_TRANSFERS_PER_TICK || source.getTotalGasUnits() <= MIN_TRANSFER_UNITS)
-                break;
+        int nextSpreadPasses = Math.max(0, source.getSpreadPasses() - 1);
 
-            if (transferToward(level, pos, source, direction))
-                transfers++;
+        List<BlockPos> targetPositions = getSpreadTargets(level, sourcePos);
+
+        if (targetPositions.size() <= 1)
+        {
+            source.setSpreadPasses(nextSpreadPasses);
+            return;
         }
 
-        source.setSpreadPasses(source.getSpreadPasses() - 1);
+        List<GasVoxelBlockEntity> targetCells = new ArrayList<>();
+
+        for (BlockPos targetPos : targetPositions)
+        {
+            GasVoxelBlockEntity cell = getOrCreateTarget(level, targetPos, nextSpreadPasses);
+
+            if (cell != null)
+                targetCells.add(cell);
+        }
+
+        if (targetCells.size() <= 1)
+        {
+            source.setSpreadPasses(nextSpreadPasses);
+            return;
+        }
+
+        Set<Gas> gasesToEqualize = collectGasTypes(targetCells);
+
+        for (Gas gas : gasesToEqualize)
+        {
+            int totalGas = 0;
+
+            for (GasVoxelBlockEntity cell : targetCells)
+                totalGas += getGasUnits(cell, gas);
+
+            int equalAmount = totalGas / targetCells.size();
+            int remainder = totalGas % targetCells.size();
+
+            for (int i = 0; i < targetCells.size(); i++)
+            {
+                GasVoxelBlockEntity cell = targetCells.get(i);
+
+                int amount = equalAmount;
+
+                // Preserve exact total amount despite integer division.
+                if (i < remainder)
+                    amount++;
+
+                setGasUnits(cell, gas, amount, nextSpreadPasses);
+            }
+        }
+
+        for (GasVoxelBlockEntity cell : targetCells)
+            cell.setSpreadPasses(nextSpreadPasses);
     }
 
-    private static boolean tryBuoyancyMove(ServerLevel level, BlockPos sourcePos, GasVoxelBlockEntity source)
+    private static List<BlockPos> getSpreadTargets(ServerLevel level, BlockPos sourcePos)
     {
-        Direction buoyancyDirection = buoyancyDirection(source.getWeightedDensity());
-        if (buoyancyDirection == null)
-            return false;
+        List<BlockPos> targets = new ArrayList<>();
+        targets.add(sourcePos);
 
-        BlockPos targetPos = sourcePos.relative(buoyancyDirection);
-        if (!canOccupy(level, targetPos))
-            return false;
-
-        GasVoxelBlockEntity target = getOrCreateTarget(level, targetPos, source.getSpreadPasses());
-        if (target == null)
-            return false;
-
-        List<Map.Entry<Gas, Integer>> gasEntries = new ArrayList<>(source.getGases().entrySet());
-        for (Map.Entry<Gas, Integer> entry : gasEntries)
+        for (Direction direction : Direction.values())
         {
-            target.addGas(entry.getKey(), entry.getValue(), source.getSpreadPasses());
-            source.removeGas(entry.getKey(), entry.getValue());
-        }
-        target.setAirUnits(source.getAirUnits());
+            BlockPos neighborPos = sourcePos.relative(direction);
 
-        level.setBlock(sourcePos, Blocks.AIR.defaultBlockState(), 3);
-        return true;
+            if (canOccupy(level, neighborPos))
+                targets.add(neighborPos);
+        }
+
+        return targets;
     }
 
-    private static boolean transferToward(ServerLevel level, BlockPos sourcePos, GasVoxelBlockEntity source, Direction direction)
+    private static Set<Gas> collectGasTypes(List<GasVoxelBlockEntity> cells)
     {
-        BlockPos targetPos = sourcePos.relative(direction);
-        if (!canOccupy(level, targetPos))
-            return false;
+        Set<Gas> gases = new HashSet<>();
 
-        GasVoxelBlockEntity target = getOrCreateTarget(level, targetPos, Math.max(0, source.getSpreadPasses() - 1));
-        if (target == null)
-            return false;
+        for (GasVoxelBlockEntity cell : cells)
+            gases.addAll(cell.getGases().keySet());
 
-        int movedAny = 0;
-        List<Map.Entry<Gas, Integer>> gasEntries = new ArrayList<>(source.getGases().entrySet());
-        for (Map.Entry<Gas, Integer> entry : gasEntries)
+        return gases;
+    }
+
+    private static int getGasUnits(GasVoxelBlockEntity cell, Gas gas)
+    {
+        return cell.getGases().getOrDefault(gas, 0);
+    }
+
+    private static void setGasUnits(GasVoxelBlockEntity cell, Gas gas, int targetAmount, int spreadPasses)
+    {
+        int currentAmount = getGasUnits(cell, gas);
+
+        if (targetAmount > currentAmount)
         {
-            int transferAmount = Math.max(MIN_TRANSFER_UNITS, entry.getValue() / 4);
-            transferAmount = Math.min(transferAmount, entry.getValue());
-            if (transferAmount <= 0)
-                continue;
-
-            source.removeGas(entry.getKey(), transferAmount);
-            target.addGas(entry.getKey(), transferAmount, Math.max(0, source.getSpreadPasses() - 1));
-            movedAny += transferAmount;
+            cell.addGas(gas, targetAmount - currentAmount, spreadPasses);
         }
-
-        return movedAny > 0;
+        else if (targetAmount < currentAmount)
+        {
+            cell.removeGas(gas, currentAmount - targetAmount);
+        }
     }
 
     private static GasVoxelBlockEntity getOrCreateTarget(ServerLevel level, BlockPos pos, int spreadPasses)
     {
         BlockEntity existingBlockEntity = level.getBlockEntity(pos);
+
         if (existingBlockEntity instanceof GasVoxelBlockEntity gasVoxel)
             return gasVoxel;
 
@@ -125,7 +175,9 @@ public final class GasCloudSimulator
             return null;
 
         level.setBlock(pos, ModBlocks.GAS_VOXEL.get().defaultBlockState(), 3);
+
         BlockEntity createdBlockEntity = level.getBlockEntity(pos);
+
         if (createdBlockEntity instanceof GasVoxelBlockEntity gasVoxel)
         {
             gasVoxel.setAirUnits(AmbientPressure.airUnitsAtY(pos.getY()));
@@ -139,6 +191,7 @@ public final class GasCloudSimulator
     private static boolean addGasToCell(ServerLevel level, BlockPos pos, GasStack gasStack, int spreadPasses)
     {
         GasVoxelBlockEntity target = getOrCreateTarget(level, pos, spreadPasses);
+
         if (target == null)
             return false;
 
@@ -148,33 +201,7 @@ public final class GasCloudSimulator
 
     private static boolean canOccupy(ServerLevel level, BlockPos pos)
     {
-        return level.getBlockState(pos).isAir() || level.getBlockEntity(pos) instanceof GasVoxelBlockEntity;
-    }
-
-    private static List<Direction> orderedDirections(float density)
-    {
-        List<Direction> directions = new ArrayList<>(List.of(Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.UP, Direction.DOWN));
-        directions.sort(Comparator.comparingInt(direction -> priority(direction, density)));
-        return directions;
-    }
-
-    private static int priority(Direction direction, float density)
-    {
-        if (density < AIR_DENSITY && direction == Direction.UP)
-            return 0;
-        if (density > AIR_DENSITY && direction == Direction.DOWN)
-            return 0;
-        if (direction.getAxis().isHorizontal())
-            return 1;
-        return 2;
-    }
-
-    private static Direction buoyancyDirection(float density)
-    {
-        if (density < AIR_DENSITY)
-            return Direction.UP;
-        if (density > AIR_DENSITY)
-            return Direction.DOWN;
-        return null;
+        return level.getBlockState(pos).isAir()
+                || level.getBlockEntity(pos) instanceof GasVoxelBlockEntity;
     }
 }
